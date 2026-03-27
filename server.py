@@ -228,6 +228,40 @@ def cors(r):
 @app.route("/<path:p>", methods=["OPTIONS"])
 def opts(p): return jsonify({}), 200
 
+@app.route("/api/admin/reseed", methods=["POST"])
+def reseed():
+    """Fuerza recarga del seed. Solo usar desde Railway para inicializar datos."""
+    d = request.json or {}
+    if d.get("secret") != ADMIN_PASSWORD:
+        return jsonify({"error": "unauthorized"}), 401
+    created = []
+    # Force reseed exercises and routines (never overwrite coaches/athletes/sessions)
+    if USE_PG:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT COUNT(*) as n FROM exercises")
+            ex_count = cur.fetchone()["n"]
+            cur.execute("SELECT COUNT(*) as n FROM routines")
+            rut_count = cur.fetchone()["n"]
+        finally:
+            conn.close()
+    else:
+        ex_count = len(load("exercises"))
+        rut_count = len(load("routines"))
+
+    if ex_count < 50:
+        save("exercises", EXERCISES_SEED)
+        created.append(f"{len(EXERCISES_SEED)} ejercicios")
+    if rut_count < 10:
+        save("routines", ROUTINES_SEED)
+        created.append(f"{len(ROUTINES_SEED)} rutinas")
+    if not load("coaches"):
+        save("coaches", COACHES_SEED)
+        created.append(f"{len(COACHES_SEED)} coaches seed")
+
+    return jsonify({"ok": True, "created": created, "exercises": ex_count, "routines": rut_count})
+
 @app.route("/favicon.ico")
 def favicon(): return "", 204
 
