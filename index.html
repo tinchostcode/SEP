@@ -41,12 +41,12 @@ h1,h2,h3{font-family:'Bebas Neue',sans-serif;letter-spacing:.05em;}
 .main{margin-left:220px;padding:32px;flex:1;max-width:calc(100vw - 220px);}
 
 /* ── MOBILE HEADER ── */
-.mobile-header{display:none;position:fixed;top:0;left:0;right:0;height:56px;background:var(--bg2);border-bottom:1px solid var(--border);z-index:200;align-items:center;padding:0 16px;gap:12px;}
+.mobile-header{display:none;position:fixed;top:0;left:0;right:0;height:calc(56px + env(safe-area-inset-top));background:var(--bg2);border-bottom:1px solid var(--border);z-index:200;align-items:flex-end;padding:0 16px env(safe-area-inset-bottom,0) 16px;padding-top:env(safe-area-inset-top);gap:12px;padding-bottom:10px;}
 .mobile-header-title{font-family:'Bebas Neue';font-size:22px;color:var(--neon);flex:1;}
 .mobile-menu-btn{background:none;border:none;color:var(--text);font-size:22px;cursor:pointer;padding:4px 8px;line-height:1;}
 
 /* ── BOTTOM NAV — mobile only ── */
-.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:60px;background:var(--bg2);border-top:1px solid var(--border);z-index:200;flex-direction:row;align-items:stretch;}
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:calc(60px + env(safe-area-inset-bottom));background:var(--bg2);border-top:1px solid var(--border);z-index:200;flex-direction:row;align-items:flex-start;padding-bottom:env(safe-area-inset-bottom);}
 .bottom-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:#555;font-size:9px;font-weight:700;letter-spacing:.05em;transition:color .15s;border:none;background:none;padding:6px 2px;position:relative;}
 .bottom-nav-item.active{color:var(--neon);}
 .bottom-nav-item .bnav-icon{font-size:20px;line-height:1;}
@@ -152,7 +152,7 @@ tr:hover td{background:rgba(255,255,255,.01);}
   .bottom-nav{display:flex;}
 
   /* Main ajustado */
-  .main{margin-left:0;padding:72px 16px 76px;max-width:100vw;}
+  .main{margin-left:0;padding:calc(72px + env(safe-area-inset-top)) 16px calc(76px + env(safe-area-inset-bottom));max-width:100vw;}
 
   /* Títulos más chicos */
   .page-title{font-size:28px;}
