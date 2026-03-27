@@ -25,7 +25,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 h1,h2,h3{font-family:'Bebas Neue',sans-serif;letter-spacing:.05em;}
 
 /* ── SIDEBAR — desktop only ── */
-.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;transition:transform .25s ease;}
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;transition:transform .25s ease;overflow-y:auto;}
 .logo{padding:24px 20px 20px;border-bottom:1px solid var(--border);}
 .logo h1{font-size:28px;color:var(--neon);}
 .logo span{font-size:11px;color:var(--muted);font-family:'DM Sans';letter-spacing:.1em;}
@@ -34,7 +34,7 @@ h1,h2,h3{font-family:'Bebas Neue',sans-serif;letter-spacing:.05em;}
 .nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;font-size:14px;color:#888;transition:all .15s;border-left:3px solid transparent;}
 .nav-item:hover{color:var(--text);background:rgba(255,255,255,.03);}
 .nav-item.active{color:var(--neon);border-left-color:var(--neon);background:rgba(188,255,45,.05);}
-.nav-footer{padding:16px;border-top:1px solid var(--border);}
+.nav-footer{padding:16px;border-top:1px solid var(--border);padding-bottom:calc(16px + env(safe-area-inset-bottom));}
 .user-info{font-size:12px;color:var(--muted);margin-bottom:10px;padding:10px;background:var(--bg3);border-radius:10px;}
 .user-role{font-size:10px;letter-spacing:.1em;margin-bottom:2px;}
 .user-name{font-weight:700;color:var(--text);font-size:13px;}
@@ -206,6 +206,9 @@ tr:hover td{background:rgba(255,255,255,.01);}
   <span class="mobile-header-title" id="mobile-page-title">COACHAPP</span>
   <div id="mobile-header-user" style="display:flex;align-items:center;gap:8px;">
     <span id="mobile-role-badge" style="font-size:10px;color:var(--muted);letter-spacing:.08em;"></span>
+    <button id="mobile-theme-btn" style="background:none;border:none;cursor:pointer;padding:6px;-webkit-tap-highlight-color:transparent;touch-action:manipulation;" title="Tema">
+      <div id="mobile-theme-dot" style="width:20px;height:20px;border-radius:50%;background:var(--neon);border:2px solid rgba(255,255,255,.25);transition:background .2s;"></div>
+    </button>
   </div>
 </div>
 
@@ -214,6 +217,19 @@ tr:hover td{background:rgba(255,255,255,.01);}
 
 <!-- BOTTOM NAV (se rellena por JS según rol) -->
 <div class="bottom-nav" id="bottom-nav"></div>
+
+<!-- Mobile Theme Picker Popup -->
+<div id="mobile-theme-picker" style="display:none;position:fixed;top:calc(max(env(safe-area-inset-top,0px),12px) + 52px);right:12px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:12px 14px;z-index:10000;box-shadow:0 8px 32px rgba(0,0,0,.5);">
+  <div style="font-size:10px;color:var(--muted);letter-spacing:.08em;margin-bottom:8px;">TEMA</div>
+  <div style="display:flex;gap:8px;">
+    <button onclick="setTheme('');toggleThemePicker()" title="Neon" style="width:26px;height:26px;border-radius:50%;background:#bcff2d;border:2px solid transparent;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent;" id="mpick-neon"></button>
+    <button onclick="setTheme('carbon-red');toggleThemePicker()" title="Carbon Red" style="width:26px;height:26px;border-radius:50%;background:#ff4444;border:2px solid transparent;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent;" id="mpick-carbon-red"></button>
+    <button onclick="setTheme('midnight-blue');toggleThemePicker()" title="Midnight Blue" style="width:26px;height:26px;border-radius:50%;background:#38bdf8;border:2px solid transparent;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent;" id="mpick-midnight-blue"></button>
+    <button onclick="setTheme('gold-black');toggleThemePicker()" title="Gold & Black" style="width:26px;height:26px;border-radius:50%;background:#f5c518;border:2px solid transparent;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent;" id="mpick-gold-black"></button>
+    <button onclick="setTheme('pearl-sport');toggleThemePicker()" title="Pearl Sport" style="width:26px;height:26px;border-radius:50%;background:#6366f1;border:2px solid transparent;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent;" id="mpick-pearl-sport"></button>
+    <button onclick="setTheme('arena-verde');toggleThemePicker()" title="Arena Verde" style="width:26px;height:26px;border-radius:50%;background:#3d7a4f;border:2px solid transparent;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent;" id="mpick-arena-verde"></button>
+  </div>
+</div>
 
 <!-- LOGIN -->
 <div id="login-screen" style="position:fixed;inset:0;background:#0a0a0a;display:flex;align-items:center;justify-content:center;z-index:9000;padding:20px;">
@@ -257,8 +273,7 @@ tr:hover td{background:rgba(255,255,255,.01);}
     <div id="nav-coach" style="display:none">
       <div class="nav-section">Dashboard</div>
       <div class="nav-item" onclick="goTo('dashboard')"><span>⚡</span> Dashboard</div>
-      <div class="nav-section">Mi entreno</div>
-      <div class="nav-item" onclick="goTo('coach-workout')"><span>🏃</span> Mi entrenamiento</div>
+
       <div class="nav-section">Gestión</div>
       <div class="nav-item" onclick="goTo('athletes')"><span>👥</span> Mis deportistas</div>
       <div class="nav-item" onclick="goTo('exercises')"><span>🏋️</span> Ejercicios</div>
@@ -468,11 +483,6 @@ tr:hover td{background:rgba(255,255,255,.01);}
   </div>
 
   <!-- ══ ATHLETE HISTORY ══ -->
-  <!-- COACH WORKOUT PAGE -->
-  <div class="page" id="page-coach-workout">
-    <div id="coach-workout-content"></div>
-  </div>
-
   <!-- COACH POSTS PAGE -->
   <div class="page" id="page-posts">
     <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end;">
@@ -761,7 +771,7 @@ tr:hover td{background:rgba(255,255,255,.01);}
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-routine')">Cancelar</button>
-      <button class="btn btn-ghost" id="btn-analyze-routine" onclick="analyzeRoutineAI()">✦ Gemini</button>
+      <button class="btn btn-ghost" id="btn-analyze-routine" onclick="analyzeRoutineAI()" class="ai-btn">✦ Gemini</button>
       <button class="btn btn-primary" onclick="saveRoutine()">Guardar</button>
     </div>
     <div id="routine-ai-result" style="margin:0 24px 24px;border-radius:14px;border:1px solid rgba(188,255,45,.18);display:none;overflow:hidden;">
@@ -857,7 +867,7 @@ tr:hover td{background:rgba(255,255,255,.01);}
   <div class="modal" style="max-width:680px;background:#111;">
     <div class="modal-header">
       <h3 class="modal-title">FICHA DE RUTINA</h3>
-      <div style="display:flex;gap:8px;"><button class="btn btn-primary btn-sm" onclick="saveAsImage()">📥 Guardar imagen</button><button class="btn btn-outline btn-sm" onclick="printPDF()">🖨 Imprimir</button><button class="modal-close" onclick="closeModal('modal-pdf')">✕</button></div>
+      <div style="display:flex;gap:8px;"><button class="btn btn-primary btn-sm" onclick="saveAsImage()">📥 Guardar imagen</button><button class="modal-close" onclick="closeModal('modal-pdf')">✕</button></div>
     </div>
     <div class="modal-body" id="pdf-content"></div>
   </div>
@@ -1026,6 +1036,8 @@ async function doLogin(){
     const data=await res.json();
     if(!data.ok){errEl.textContent=data.error||'Error.';errEl.style.display='block';btn.textContent='Ingresar';btn.disabled=false;return;}
     errEl.style.display='none';
+    // Persist session
+    localStorage.setItem('coachapp-session', JSON.stringify({role:data.role,user:data,ts:Date.now()}));
     S.role=data.role;
     S.user=data;
     showApp();
@@ -1057,7 +1069,6 @@ function buildBottomNav(role){
     ],
     coach:[
       {icon:'⚡',label:'INICIO',page:'dashboard'},
-      {icon:'🏃',label:'ENTRENO',page:'coach-workout'},
       {icon:'👥',label:'ATLETAS',page:'athletes'},
       {icon:'📋',label:'RUTINAS',page:'routines'},
       {icon:'🔗',label:'ASIGNAR',page:'assign'},
@@ -1103,6 +1114,8 @@ function updateMobileTitle(page){
 // ──────────────────────────────────────────────────────
 function showApp(){
   initTheme();
+  // Check if AI is available
+  GET('/ai/status').then(d=>{ S.aiAvailable = d.available; updateAIButtons(); }).catch(()=>{ S.aiAvailable=false; });
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app-shell').style.display='block';
   ['nav-admin','nav-coach','nav-athlete'].forEach(id=>document.getElementById(id).style.display='none');
@@ -1130,6 +1143,7 @@ function showApp(){
 }
 
 function doLogout(){
+  localStorage.removeItem('coachapp-session');
   S.role=null;S.user=null;
   S.athletes=[];S.exercises=[];S.routines=[];S.sessions=[];S.coaches=[];
   document.getElementById('login-email').value='';
@@ -1161,6 +1175,11 @@ function initTheme(){
   setTheme(saved);
 }
 // ─────────────────────────────────────────────────────────────────────────────
+function updateAIButtons(){
+  const show=S.aiAvailable;
+  document.querySelectorAll('.ai-btn').forEach(b=>{b.style.display=show?'':'none';});
+}
+
 function goTo(page){
   updateBottomNavActive(page);
   updateMobileTitle(page);
@@ -1173,7 +1192,7 @@ function goTo(page){
     'dashboard':loadCoachDashboard,'athletes':loadAthletes,'exercises':loadExercises,
     'routines':loadRoutines,'assign':loadAssign,
     'athlete-home':loadAthleteDashboard,'athlete-history':loadAthleteHistory,
-    'athlete-calendar':loadAthleteCalendar,'feedback-inbox':loadFeedbackInbox,'posts':loadPosts,'athlete-posts':loadAthleteFeed,'coach-workout':loadCoachWorkout
+    'athlete-calendar':loadAthleteCalendar,'feedback-inbox':loadFeedbackInbox,'posts':loadPosts,'athlete-posts':loadAthleteFeed
   };
   if(loaders[page])loaders[page]();
 }
@@ -1324,6 +1343,22 @@ function initExerciseModal(){
 // Apply theme on load
 document.addEventListener('DOMContentLoaded',function(){
   initTheme();
+  // Restore session if exists and not expired (7 days)
+  try{
+    const saved = localStorage.getItem('coachapp-session');
+    if(saved){
+      const sess = JSON.parse(saved);
+      const age = Date.now() - (sess.ts||0);
+      if(age < 7*24*3600*1000 && sess.user && sess.role){
+        S.role = sess.role;
+        S.user = sess.user;
+        showApp();
+        return;
+      } else {
+        localStorage.removeItem('coachapp-session');
+      }
+    }
+  }catch(e){}
   // Wire hamburger via addEventListener — avoids Cloudflare/PWA inline handler issues
   var hbtn = document.getElementById('hamburger-btn');
   if(hbtn){
@@ -1453,20 +1488,49 @@ async function loadAdminAthletes(){
 // ══════════════════════════════════════════════
 async function loadCoachDashboard(){
   const cid=coachId();
-  const[athletes,routines,exercises,sessions]=await Promise.all([
-    GET('/athletes?coach_id='+cid),GET('/routines?coach_id='+cid),GET('/exercises'),GET('/sessions?coach_id='+cid)
+  const today=new Date().toISOString().slice(0,10);
+  const[athletes,routines,exercises,sessions,todayScheds]=await Promise.all([
+    GET('/athletes?coach_id='+cid),GET('/routines?coach_id='+cid),
+    GET('/exercises'),GET('/sessions?coach_id='+cid),
+    GET('/schedules?coach_id='+cid+'&date='+today)
   ]);
   S.athletes=athletes;S.routines=routines;S.exercises=exercises;S.sessions=sessions;
-  document.getElementById('stat-athletes').textContent=athletes.length;
+
+  // Stats
+  const activeAthletes=athletes.filter(a=>!a.is_disabled&&a.status!=='inactive');
+  const todayDone=todayScheds.filter(s=>s.completed).length;
+  const todayTotal=todayScheds.length;
+  const weekSessions=sessions.filter(s=>(new Date()-new Date(s.date||s.created_at))<7*24*3600*1000).length;
+  const unread=sessions.filter(s=>!s.read).length;
+
+  document.getElementById('stat-athletes').textContent=activeAthletes.length;
   document.getElementById('stat-routines').textContent=routines.length;
   document.getElementById('stat-exercises').textContent=exercises.length;
   document.getElementById('stat-sessions').textContent=sessions.length;
-  document.getElementById('dashboard-athletes-list').innerHTML=athletes.slice(0,4).map(a=>`
-    <div class="athlete-row" style="padding:10px 0;border-bottom:1px solid var(--border);${a.is_disabled?'opacity:.5':''}">
-      <img class="avatar" src="${a.avatar||'https://i.pravatar.cc/40?u='+a.id}">
-      <div><div class="athlete-name">${a.first_name} ${a.last_name}</div><div class="athlete-email">${a.sport} · ${levelLabel(a.level)}</div></div>
-      ${a.bmi?`<span class="badge badge-muted" style="margin-left:auto;">${a.bmi.value}</span>`:''}
-    </div>`).join('')||'<div class="empty-state"><div class="empty-text">Sin atletas aún</div></div>';
+
+  // Today's activity
+  const todayMap={};
+  todayScheds.forEach(s=>{todayMap[s.athlete_id]=s;});
+  const todayHtml = activeAthletes.length ? activeAthletes.map(a=>{
+    const sch=todayMap[a.id];
+    const r=sch?routines.find(r=>r.id===sch.routine_id):null;
+    const statusIcon=sch?(sch.completed?'✅':'⏳'):'—';
+    const statusColor=sch?(sch.completed?'var(--success)':'var(--warn)'):'var(--muted)';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">'
+      +'<img class="avatar" src="'+(a.avatar||'https://i.pravatar.cc/40?u='+a.id)+'">'
+      +'<div style="flex:1;"><div style="font-weight:700;font-size:13px;">'+a.first_name+' '+a.last_name+'</div>'
+      +(r?'<div style="font-size:11px;color:var(--muted);">'+r.name+'</div>':'<div style="font-size:11px;color:var(--muted);">Sin rutina hoy</div>')
+      +'</div>'
+      +'<span style="font-size:18px;color:'+statusColor+';">'+statusIcon+'</span>'
+      +'</div>';
+  }).join('') : '<div class="empty-state"><div class="empty-text">Sin atletas activos</div></div>';
+
+  document.getElementById('dashboard-athletes-list').innerHTML=
+    '<div style="font-size:11px;color:var(--muted);letter-spacing:.08em;margin-bottom:10px;">'
+    +'HOY — '+todayDone+'/'+todayTotal+' entrenamientos completados'
+    +(unread?'<span class="badge badge-danger" style="margin-left:8px;">'+unread+' sin leer</span>':'')
+    +'</div>'+todayHtml;
+
   document.getElementById('dashboard-routines-list').innerHTML=routines.slice(0,4).map(r=>`
     <div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
       <div><div style="font-weight:700;font-size:14px;">${r.name}</div><div style="font-size:12px;color:var(--muted);">${r.exercises?.length||0} ejercicios · ${r.type}</div></div>
@@ -1844,9 +1908,8 @@ async function showRoutineDetail(id){
   // Edit button wires to openRoutineModal
   document.getElementById('rdet-edit-btn').onclick=()=>{closeModal('modal-routine-detail');openRoutineModal(r);};
   document.getElementById('rdet-assign-btn').onclick=()=>{
-    closeModal('modal-routine-detail');
-    // Preselect this routine in assign page
     S._preselectedRoutine = r;
+    closeModal('modal-routine-detail');
     goTo('assign');
   };
   const typeLabel={classic:'📋 Clásico',circuit:'⏱ Circuito','1rm':'💪 Fuerza Máxima',hybrid_padel:'🎾 Híbrido Pádel'}[r.type]||r.type;
@@ -2399,10 +2462,7 @@ async function loadAssign(){
   S.athletes=athletes;S.routines=routines;S.assignAthlete=null;S.assignRoutine=null;
   _assignSelectedDays=new Set();_assignExtraDates=[];
   const active=athletes.filter(a=>!a.is_disabled&&a.status!=='inactive');
-  // "Asignarme a mí" option for coach
-  const coachSelf = {id: 'self-'+coachId(), first_name: '🏋️ Yo mismo', last_name: '(Coach)', sport: 'Entrenamiento propio', level:'advanced', avatar:'', _isSelf:true, coach_id:cid};
-  const listItems = [coachSelf, ...active];
-  document.getElementById('assign-athletes-list').innerHTML=listItems.map(a=>`
+  document.getElementById('assign-athletes-list').innerHTML=active.map(a=>`
     <div id="assign-ath-${a.id}" onclick="selectAssignAthlete('${a.id}')" style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;cursor:pointer;border:2px solid var(--border);margin-bottom:8px;transition:all .15s;${a._isSelf?'border-color:rgba(188,255,45,.2);background:rgba(188,255,45,.03);':''}">
       ${a.avatar?`<img class="avatar" src="${a.avatar}">`:`<div class="avatar" style="background:rgba(188,255,45,.1);display:flex;align-items:center;justify-content:center;font-size:18px;">${a._isSelf?'🏋️':'👤'}</div>`}
       <div><div style="font-weight:700;${a._isSelf?'color:var(--neon);':''}">${a.first_name} ${a.last_name}</div><div style="font-size:12px;color:var(--muted);">${a.sport} · ${levelLabel(a.level)}</div></div>
@@ -2681,12 +2741,43 @@ async function loadAthleteDashboard(){
 
   // badge de nuevas asignaciones no vistas
   updateScheduleBadge(unseenData.count||0);
+  // AI weather + routine recommendation
+  if(S._weatherData && routine && S.aiAvailable){
+    setTimeout(()=>getWeatherAIRec(S._weatherData, routine), 800);
+  }
   if(unseenData.count>0) toast(`📅 Tenés ${unseenData.count} entrenamiento${unseenData.count>1?'s':''} nuevo${unseenData.count>1?'s':''} programado${unseenData.count>1?'s':''}!`,'success');
 
   const typeLabel={classic:'📋 CLÁSICO',circuit:'⏱ CIRCUITO','1rm':'💪 1RM',hybrid_padel:'🎾 HÍBRIDO'}[routine?.type]||'📋';
 
+  // Fetch weather in background
+  let weatherHtml = '';
+  try{
+    const pos = await new Promise((res,rej)=>
+      navigator.geolocation.getCurrentPosition(res,rej,{timeout:5000}));
+    const {latitude:lat,longitude:lon} = pos.coords;
+    const wResp = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=auto`);
+    const wData = await wResp.json();
+    const cur = wData.current;
+    const wCode = cur.weather_code;
+    const wIcon = wCode<=1?'☀️':wCode<=3?'⛅':wCode<=48?'🌫️':wCode<=67?'🌧️':wCode<=77?'❄️':wCode<=82?'🌦️':'⛈️';
+    const wDesc = wCode<=1?'Despejado':wCode<=3?'Parcialmente nublado':wCode<=48?'Nublado/neblina':wCode<=67?'Lluvia':wCode<=77?'Nieve':wCode<=82?'Chubascos':'Tormenta';
+    weatherHtml = `<div id="weather-widget" style="background:rgba(41,241,255,.05);border:1px solid rgba(41,241,255,.1);border-radius:14px;padding:14px 16px;margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+        <div style="font-size:32px;">${wIcon}</div>
+        <div style="flex:1;">
+          <div style="font-size:22px;font-weight:700;">${Math.round(cur.temperature_2m)}°C <span style="font-size:13px;color:var(--muted);">Sensación ${Math.round(cur.apparent_temperature)}°C</span></div>
+          <div style="font-size:12px;color:var(--muted);">${wDesc} · Humedad ${cur.relative_humidity_2m}% · Viento ${Math.round(cur.wind_speed_10m)}km/h</div>
+        </div>
+      </div>
+      <div id="weather-ai-rec" style="font-size:12px;color:var(--cyan);line-height:1.5;">Analizando condiciones...</div>
+    </div>`;
+    // Ask AI for recommendation after rendering
+    S._weatherData = {temp:cur.temperature_2m, humidity:cur.relative_humidity_2m, apparent:cur.apparent_temperature, desc:wDesc};
+  }catch(e){ weatherHtml=''; }
+
   document.getElementById('athlete-dashboard-content').innerHTML=`
     <div>
+      ${weatherHtml}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;">
         <div><h2 style="font-family:'Bebas Neue';font-size:40px;line-height:1;">¡HOLA, <span style="color:var(--neon)">${(u.first_name||u.name.split(' ')[0]).toUpperCase()}</span>!</h2><p style="color:var(--muted);">¿Listo para entrenar hoy?</p></div>
         <img src="${fullAthlete.avatar||'https://i.pravatar.cc/64?u='+u.id}" style="width:64px;height:64px;border-radius:50%;border:3px solid var(--neon);">
@@ -2969,20 +3060,50 @@ function renderClassicWorkout(){
           onclick="editWorkoutWeight(${S.workoutExIdx},${S.workoutSetsDone})" title="Tocá para cambiar el peso">
           <div style="font-size:11px;color:var(--muted);">KG <span style="color:rgba(255,255,255,.3)">✏</span></div>
           <div style="font-family:'Bebas Neue';font-size:28px;" id="workout-weight-display">
-            ${(cur.setDetails?.[S.workoutSetsDone]?.weight)||cur.weight||'—'}
+            ${(cur.setDetails?.[S.workoutSetsDone]?.weight)||cur.weight||getLastWeight(curEx.id)||'—'}
           </div>
+          ${getLastWeight(curEx.id)?`<div style="font-size:9px;color:var(--muted);margin-top:2px;">última vez</div>`:''}
         </div>
       </div>
       ${(cur.setDetails?.[S.workoutSetsDone]?.note)?`<div style="background:rgba(41,241,255,.05);border-radius:10px;padding:10px 14px;margin-bottom:14px;border:1px solid rgba(41,241,255,.1);font-size:13px;color:var(--cyan);">📝 ${cur.setDetails[S.workoutSetsDone].note}</div>`:''}
       ${curEx.video?`<div style="margin-bottom:14px;"><a href="${curEx.video}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;color:var(--cyan);font-size:13px;text-decoration:none;padding:6px 12px;background:rgba(41,241,255,.08);border-radius:8px;border:1px solid rgba(41,241,255,.15);">▶ Ver video del ejercicio</a></div>`:''}
-      ${curEx.tips?.length?`<div style="background:rgba(188,255,45,.04);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(188,255,45,.1);"><div style="font-size:11px;color:var(--neon);margin-bottom:4px;">💡 TIP</div><div style="font-size:12px;color:#ccc;">${curEx.tips[0]}</div></div>`:''}
+      ${curEx.tips?.length?`
+      <div style="background:rgba(188,255,45,.04);border-radius:10px;padding:12px;margin-bottom:10px;border:1px solid rgba(188,255,45,.1);">
+        <div style="font-size:10px;color:var(--neon);letter-spacing:.08em;margin-bottom:6px;">💡 TIPS</div>
+        ${curEx.tips.map(t=>`<div style="font-size:12px;color:#ccc;padding:2px 0;display:flex;gap:6px;align-items:flex-start;"><span style="color:var(--neon);flex-shrink:0;">→</span>${t}</div>`).join('')}
+      </div>
+      ${curEx.errors?.length?`<div style="background:rgba(255,77,77,.04);border-radius:10px;padding:10px 12px;margin-bottom:10px;border:1px solid rgba(255,77,77,.1);">
+        <div style="font-size:10px;color:var(--danger);letter-spacing:.08em;margin-bottom:4px;">⚠ ERRORES COMUNES</div>
+        <div style="font-size:12px;color:#ccc;">${curEx.errors[0]}</div>
+      </div>`:''}`:``}
       <div id="rest-overlay" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.97);border-radius:20px;flex-direction:column;align-items:center;justify-content:center;z-index:10;"><div style="font-size:13px;color:var(--muted);letter-spacing:.2em;margin-bottom:8px;">DESCANSO</div><div id="rest-count-display" class="rest-count">—</div><button class="btn btn-outline" style="margin-top:16px;" onclick="skipClassicRest()">Saltar</button>${nextEx?`<div style="margin-top:14px;font-size:12px;color:var(--muted);">Próximo: ${nextEx.name}</div>`:''}</div>
       <div style="display:flex;gap:10px;"><button class="btn btn-primary btn-lg" style="flex:1;" onclick="completeClassicSet()">✓ SERIE COMPLETA</button><button class="btn btn-outline" onclick="skipClassicExercise()" style="padding:14px;">⏭</button></div>
       ${nextEx?`<div class="next-up" style="margin-top:14px;">${nextEx.image?`<img class="next-img" src="${nextEx.image}">`:'<div class="next-img" style="background:var(--bg3);display:flex;align-items:center;justify-content:center;">🏋️</div>'}<div><div style="font-size:11px;color:var(--muted);">SIGUIENTE</div><div style="font-weight:700;">${nextEx.name}</div></div></div>`:`<div style="text-align:center;padding:14px;color:var(--success);font-weight:700;">🏁 Último ejercicio</div>`}
     </div></div>`;
 }
+// ── WEIGHT HISTORY ──────────────────────────────────────────────────────────
+function getLastWeight(exerciseId){
+  try{
+    const h=JSON.parse(localStorage.getItem('coachapp-weights')||'{}');
+    return h[exerciseId]||null;
+  }catch(e){return null;}
+}
+function saveWeight(exerciseId, weight){
+  if(!exerciseId||!weight||weight==='—') return;
+  try{
+    const h=JSON.parse(localStorage.getItem('coachapp-weights')||'{}');
+    h[exerciseId]=weight;
+    localStorage.setItem('coachapp-weights',JSON.stringify(h));
+  }catch(e){}
+}
+// ─────────────────────────────────────────────────────────────────────────────
 function completeClassicSet(){
   const cur=S.currentWorkout.exercises[S.workoutExIdx];
+  // Save weight for this exercise
+  const w=(cur.setDetails?.[S.workoutSetsDone]?.weight)||cur.weight;
+  const em=exMap();
+  const ex=em[cur.exerciseId];
+  if(ex && w && w!=='—') saveWeight(ex.id, w);
   S.workoutSetsDone++;
   if(S.workoutSetsDone>=(cur.sets||1)){
     if(S.workoutExIdx<S.currentWorkout.exercises.length-1){S.workoutExIdx++;S.workoutSetsDone=0;soundBeepChange();renderClassicWorkout();}
@@ -3099,10 +3220,17 @@ function advanceCircuitPhase(){
 function skipCircuitStep(){clearInterval(S.workoutTimer);window._circuitPaused=false;S.workoutTimeLeft=0;advanceCircuitPhase();}
 function confirmExitWorkout(){if(confirm('¿Salir del entrenamiento?')){clearInterval(S.workoutTimer);window._circuitPaused=false;window._screenLocked=false;closeModal('modal-workout');}}
 async function onFinishWorkout(){soundDone();clearInterval(S.workoutTimer);window._circuitPaused=false;closeModal('modal-workout');
-  if(S._currentScheduleId){try{await PUT('/schedules/'+S._currentScheduleId+'/complete',{});}catch(e){}S._currentScheduleId=null;}
-  if(S._coachSelfSchedId){
-    try{ await PUT('/coach/self-schedule/'+S._coachSelfSchedId+'/complete',{}); }catch(e){}
-    S._coachSelfSchedId=null;
+  if(S._currentScheduleId){
+    try{
+      await PUT('/schedules/'+S._currentScheduleId+'/complete',{});
+    }catch(e){
+      // Offline — queue for retry
+      const q=JSON.parse(localStorage.getItem('coachapp-offline-queue')||'[]');
+      q.push({type:'complete_schedule',id:S._currentScheduleId,ts:Date.now()});
+      localStorage.setItem('coachapp-offline-queue',JSON.stringify(q));
+      toast('Sin conexión — la sesión se guardará cuando vuelva el internet','warn');
+    }
+    S._currentScheduleId=null;
   }
   S.feedbackRating=3;setRating(3);document.getElementById('feedback-comment').value='';openModal('modal-feedback');}
 
@@ -3478,6 +3606,39 @@ async function deletePost(pid){
   loadPosts();
 }
 
+// ── CLIMA + IA ──────────────────────────────────────────────────────────────
+async function getWeatherAIRec(weather, routine){
+  const recEl = document.getElementById('weather-ai-rec');
+  if(!recEl) return;
+  try{
+    const prompt = `Sos un entrenador deportivo. El atleta va a entrenar ahora con esta rutina: "${routine.name}" (tipo: ${routine.type}, ${routine.exercises?.length||0} ejercicios, dificultad: ${routine.difficulty}).
+Las condiciones climáticas actuales son: ${weather.temp}°C, sensación térmica ${weather.apparent}°C, humedad ${weather.humidity}%, ${weather.desc}.
+Dame UNA recomendación concreta y útil de máximo 2 oraciones sobre cómo adaptar el entrenamiento a estas condiciones. Sé específico, no genérico.`;
+    const data = await POST('/ai/weather-rec',{
+      weather, routine_name:routine.name, routine_type:routine.type,
+      difficulty:routine.difficulty, exercise_count:routine.exercises?.length||0
+    });
+    const text = data.recommendation||'';
+    if(text && recEl) recEl.textContent = '🤖 ' + text.trim();
+  }catch(e){
+    if(recEl) recEl.textContent = '';
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+// Flush offline queue when back online
+window.addEventListener('online', async function(){
+  const q=JSON.parse(localStorage.getItem('coachapp-offline-queue')||'[]');
+  if(!q.length) return;
+  const remaining=[];
+  for(const item of q){
+    try{
+      if(item.type==='complete_schedule') await PUT('/schedules/'+item.id+'/complete',{});
+    }catch(e){ remaining.push(item); }
+  }
+  localStorage.setItem('coachapp-offline-queue',JSON.stringify(remaining));
+  if(remaining.length < q.length) toast('Sesiones sincronizadas ✓','success');
+});
+
 async function pollPostsBadge(){
   if(S.role!=='athlete')return;
   try{
@@ -3502,104 +3663,7 @@ function updatePostsBadge(count){
 // ══════════════════════════════════════════════════════════════════════════════
 // COACH WORKOUT — el coach se entrena a sí mismo
 // ══════════════════════════════════════════════════════════════════════════════
-async function loadCoachWorkout(){
-  const cid = coachId();
-  if(!S.routines.length) S.routines = await GET('/routines?coach_id='+cid);
-  if(!S.exercises.length) S.exercises = await GET('/exercises');
 
-  // Load from server (works across all devices)
-  let schedules = [];
-  try { schedules = await GET('/coach/self-schedule?coach_id='+cid); } catch(e){}
-
-  const today = new Date().toISOString().slice(0,10);
-  const todayPending = schedules.filter(s => s.date===today && !s.completed);
-  const upcoming = schedules.filter(s => s.date>=today && !s.completed)
-    .sort((a,b) => a.date>b.date?1:-1).slice(0,8);
-
-  let todayRoutine = null, todaySchedId = null;
-  if(todayPending.length){
-    const sch = todayPending[0];
-    todayRoutine = sch.routine || S.routines.find(r => r.id===sch.routine_id);
-    todaySchedId = sch.id;
-  }
-
-  const typeLabel = {classic:'📋 CLÁSICO',circuit:'⏱ CIRCUITO','1rm':'💪 1RM',hybrid_padel:'🎾 HÍBRIDO'};
-
-  function buildUpcomingItem(s){
-    const r = s.routine || S.routines.find(r => r.id===s.routine_id);
-    const d = new Date(s.date+'T12:00:00').toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short'});
-    const isT = s.date===today;
-    const div = document.createElement('div');
-    div.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;margin-bottom:8px;'
-      + 'background:'+(isT?'rgba(188,255,45,.08)':'var(--bg3)')+';'
-      + 'border:1px solid '+(isT?'rgba(188,255,45,.2)':'var(--border)')+';';
-    div.innerHTML = '<div style="font-size:13px;color:'+(isT?'var(--neon)':'var(--muted)')+';min-width:68px;font-weight:700;">'+d.toUpperCase()+'</div>'
-      + '<div style="flex:1;"><div style="font-weight:700;font-size:14px;">'+(r?r.name:'Rutina')+'</div>'
-      + '<div style="font-size:12px;color:var(--muted);">'+(r?(typeLabel[r.type]||r.type)+' · '+r.difficulty:'')+'</div></div>';
-    if(isT){
-      const btn = document.createElement('button');
-      btn.className = 'btn btn-sm btn-primary';
-      btn.textContent = '▶ Hoy';
-      btn.onclick = () => startCoachWorkout(s.routine_id, s.id);
-      div.appendChild(btn);
-    } else {
-      const badge = document.createElement('span');
-      badge.className = 'badge badge-muted';
-      badge.textContent = 'Pendiente';
-      div.appendChild(badge);
-    }
-    return div;
-  }
-
-  const el = document.getElementById('coach-workout-content');
-  if(!el) return;
-
-  let html = '<div class="page-header"><h2 class="page-title">MI <span>ENTRENAMIENTO</span></h2>'
-    + '<p class="page-sub">Tus rutinas como atleta</p></div>';
-
-  if(todayRoutine){
-    html += '<div class="card glow" style="padding:24px;margin-bottom:20px;">'
-      + '<div style="display:flex;gap:8px;margin-bottom:10px;">'
-      + '<span class="badge badge-neon">🔥 HOY</span>'
-      + '<span class="badge badge-muted">'+(typeLabel[todayRoutine.type]||todayRoutine.type)+'</span></div>'
-      + '<h2 style="font-size:36px;font-family:\'Bebas Neue\',sans-serif;line-height:1;margin-bottom:6px;">'+todayRoutine.name+'</h2>'
-      + '<div style="color:var(--muted);font-size:14px;margin-bottom:20px;">🏋️ '+(todayRoutine.exercises?.length||0)+' ejercicios</div>'
-      + '<button class="btn btn-primary btn-lg" style="width:100%;font-size:18px;" id="coach-start-btn">▶ INICIAR ENTRENAMIENTO</button>'
-      + '</div>';
-  } else {
-    html += '<div class="card" style="padding:24px;margin-bottom:20px;text-align:center;">'
-      + '<div style="font-size:40px;margin-bottom:10px;">✅</div>'
-      + '<div style="font-weight:700;margin-bottom:6px;">Sin entrenamiento hoy</div>'
-      + '<div style="color:var(--muted);font-size:13px;">Asignate rutinas desde Mis Rutinas → Asignar</div>'
-      + '</div>';
-  }
-
-  html += '<div class="card" style="padding:24px;">'
-    + '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:18px;color:var(--muted);margin-bottom:14px;">PRÓXIMAS SESIONES</div>'
-    + '<div id="coach-upcoming-list"></div>'
-    + '</div>';
-
-  el.innerHTML = html;
-
-  if(todayRoutine && todaySchedId){
-    const btn = document.getElementById('coach-start-btn');
-    if(btn) btn.onclick = () => startCoachWorkout(todayRoutine.id, todaySchedId);
-  }
-
-  const upEl = document.getElementById('coach-upcoming-list');
-  if(upEl){
-    if(upcoming.length){
-      upcoming.forEach(s => upEl.appendChild(buildUpcomingItem(s)));
-    } else {
-      upEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0;">Sin entrenamientos programados. Asignate rutinas desde Mis Rutinas.</div>';
-    }
-  }
-}
-function startCoachWorkout(routineId, schedId){
-  // Mark as completed in localStorage
-  S._coachSelfSchedId = schedId;
-  startWorkout(routineId, null); // reuse existing workout engine
-}
 
 // Hook: when coach finishes a workout, mark self-schedule as done
 const _origFinishWorkout = onFinishWorkout;

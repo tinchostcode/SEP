@@ -19,7 +19,7 @@ from pathlib import Path
 from flask import Flask, request, jsonify, send_from_directory
 
 app        = Flask(__name__, static_folder=".")
-GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyBmqxLvlKvy4hu7cZaIqPpsxUCoSJrILCM")
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 ADMIN_EMAIL    = os.environ.get("ADMIN_EMAIL",    "admin@coachapp.com")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Domi.kero")
@@ -302,6 +302,39 @@ def reseed():
         created.append(f"{len(COACHES_SEED)} coaches seed")
 
     return jsonify({"ok": True, "created": created, "exercises": ex_count, "routines": rut_count})
+
+@app.route("/api/ai/status")
+def ai_status():
+    return jsonify({"available": bool(GEMINI_KEY)})
+
+@app.route("/api/ai/weather-rec", methods=["POST"])
+def weather_rec():
+    if not GEMINI_KEY: return jsonify({"recommendation":""})
+    d = request.json or {}
+    w = d.get("weather",{})
+    prompt = (
+        "Sos un entrenador deportivo. El atleta va a entrenar con la rutina: "
+        + '"' + d.get("routine_name","") + '"'
+        + " (tipo: " + d.get("routine_type","")
+        + ", " + str(d.get("exercise_count",0)) + " ejercicios"
+        + ", dificultad: " + d.get("difficulty","") + ").\n"
+        + "Condiciones climaticas: " + str(round(w.get("temp",20))) + "C"
+        + ", sensacion termica " + str(round(w.get("apparent",20))) + "C"
+        + ", humedad " + str(w.get("humidity",50)) + "%"
+        + ", " + w.get("desc","Despejado") + ".\n"
+        + "Dame UNA recomendacion concreta de maximo 2 oraciones sobre como adaptar el entrenamiento. "
+        + "Se especifico y util, no generico."
+    )
+    try:
+        r = requests.post(
+            f"{GEMINI_URL}?key={GEMINI_KEY}",
+            json={"contents":[{"parts":[{"text":prompt}]}]},
+            timeout=10
+        )
+        text = r.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+        return jsonify({"recommendation": text})
+    except Exception as e:
+        return jsonify({"recommendation": "", "error": str(e)})
 
 @app.route("/favicon.ico")
 def favicon(): return "", 204
@@ -727,12 +760,15 @@ def assign_routine(aid):
 def get_schedules():
     coach_id   = request.args.get("coach_id")
     athlete_id = request.args.get("athlete_id")
+    date       = request.args.get("date")
     if athlete_id:
         items = db_query("SELECT data FROM schedules WHERE athlete_id=%s",[athlete_id])
     elif coach_id:
         items = db_query("SELECT data FROM schedules WHERE coach_id=%s",[coach_id])
     else:
         items = db_get("schedules")
+    if date:
+        items = [s for s in items if s.get("date")==date]
     return jsonify(items)
 
 @app.route("/api/schedules", methods=["POST"])
