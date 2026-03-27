@@ -2741,43 +2741,25 @@ async function loadAthleteDashboard(){
 
   // badge de nuevas asignaciones no vistas
   updateScheduleBadge(unseenData.count||0);
-  // AI weather + routine recommendation
-  if(S._weatherData && routine && S.aiAvailable){
-    setTimeout(()=>getWeatherAIRec(S._weatherData, routine), 800);
-  }
+
   if(unseenData.count>0) toast(`📅 Tenés ${unseenData.count} entrenamiento${unseenData.count>1?'s':''} nuevo${unseenData.count>1?'s':''} programado${unseenData.count>1?'s':''}!`,'success');
 
   const typeLabel={classic:'📋 CLÁSICO',circuit:'⏱ CIRCUITO','1rm':'💪 1RM',hybrid_padel:'🎾 HÍBRIDO'}[routine?.type]||'📋';
 
-  // Fetch weather in background
-  let weatherHtml = '';
-  try{
-    const pos = await new Promise((res,rej)=>
-      navigator.geolocation.getCurrentPosition(res,rej,{timeout:5000}));
-    const {latitude:lat,longitude:lon} = pos.coords;
-    const wResp = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=auto`);
-    const wData = await wResp.json();
-    const cur = wData.current;
-    const wCode = cur.weather_code;
-    const wIcon = wCode<=1?'☀️':wCode<=3?'⛅':wCode<=48?'🌫️':wCode<=67?'🌧️':wCode<=77?'❄️':wCode<=82?'🌦️':'⛈️';
-    const wDesc = wCode<=1?'Despejado':wCode<=3?'Parcialmente nublado':wCode<=48?'Nublado/neblina':wCode<=67?'Lluvia':wCode<=77?'Nieve':wCode<=82?'Chubascos':'Tormenta';
-    weatherHtml = `<div id="weather-widget" style="background:rgba(41,241,255,.05);border:1px solid rgba(41,241,255,.1);border-radius:14px;padding:14px 16px;margin-bottom:20px;">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-        <div style="font-size:32px;">${wIcon}</div>
-        <div style="flex:1;">
-          <div style="font-size:22px;font-weight:700;">${Math.round(cur.temperature_2m)}°C <span style="font-size:13px;color:var(--muted);">Sensación ${Math.round(cur.apparent_temperature)}°C</span></div>
-          <div style="font-size:12px;color:var(--muted);">${wDesc} · Humedad ${cur.relative_humidity_2m}% · Viento ${Math.round(cur.wind_speed_10m)}km/h</div>
-        </div>
-      </div>
-      <div id="weather-ai-rec" style="font-size:12px;color:var(--cyan);line-height:1.5;">Analizando condiciones...</div>
-    </div>`;
-    // Ask AI for recommendation after rendering
-    S._weatherData = {temp:cur.temperature_2m, humidity:cur.relative_humidity_2m, apparent:cur.apparent_temperature, desc:wDesc};
-  }catch(e){ weatherHtml=''; }
+  // Weather placeholder — loads async after render
+  const weatherPlaceholder = `<div id="weather-widget" style="background:rgba(41,241,255,.05);border:1px solid rgba(41,241,255,.1);border-radius:14px;padding:14px 16px;margin-bottom:20px;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="font-size:28px;">🌤️</div>
+      <div id="weather-content" style="flex:1;font-size:12px;color:var(--muted);">Cargando condiciones climáticas...</div>
+    </div>
+    <div id="weather-ai-rec" style="font-size:12px;color:var(--cyan);line-height:1.5;margin-top:8px;display:none;"></div>
+  </div>`;
+  // Load weather async after render
+  setTimeout(()=>loadWeather(routine), 100);
 
   document.getElementById('athlete-dashboard-content').innerHTML=`
     <div>
-      ${weatherHtml}
+      ${weatherPlaceholder}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;">
         <div><h2 style="font-family:'Bebas Neue';font-size:40px;line-height:1;">¡HOLA, <span style="color:var(--neon)">${(u.first_name||u.name.split(' ')[0]).toUpperCase()}</span>!</h2><p style="color:var(--muted);">¿Listo para entrenar hoy?</p></div>
         <img src="${fullAthlete.avatar||'https://i.pravatar.cc/64?u='+u.id}" style="width:64px;height:64px;border-radius:50%;border:3px solid var(--neon);">
@@ -3607,6 +3589,46 @@ async function deletePost(pid){
 }
 
 // ── CLIMA + IA ──────────────────────────────────────────────────────────────
+async function loadWeather(routine){
+  const el = document.getElementById('weather-content');
+  if(!el) return;
+  try{
+    if(!navigator.geolocation){
+      el.closest('#weather-widget').style.display='none'; return;
+    }
+    const pos = await new Promise((res,rej)=>
+      navigator.geolocation.getCurrentPosition(res,rej,{timeout:6000,enableHighAccuracy:false}));
+    const {latitude:lat,longitude:lon} = pos.coords;
+    const wResp = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=auto`
+    );
+    const wData = await wResp.json();
+    const cur = wData.current;
+    const wCode = cur.weather_code;
+    const wIcon = wCode<=1?'☀️':wCode<=3?'⛅':wCode<=48?'🌫️':wCode<=67?'🌧️':wCode<=77?'❄️':wCode<=82?'🌦️':'⛈️';
+    const wDesc = wCode<=1?'Despejado':wCode<=3?'Parcialmente nublado':wCode<=48?'Nublado':wCode<=67?'Lluvia':wCode<=77?'Nieve':wCode<=82?'Chubascos':'Tormenta';
+
+    // Update widget icon
+    const iconEl = el.closest('#weather-widget')?.querySelector('div');
+    if(iconEl) iconEl.textContent = wIcon;
+
+    el.innerHTML = `<div style="font-size:20px;font-weight:700;color:var(--text);">${Math.round(cur.temperature_2m)}°C <span style="font-size:12px;color:var(--muted);">Sensación ${Math.round(cur.apparent_temperature)}°C</span></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px;">${wDesc} · Humedad ${cur.relative_humidity_2m}% · Viento ${Math.round(cur.wind_speed_10m)}km/h</div>`;
+
+    // AI recommendation
+    const weatherData = {temp:cur.temperature_2m, humidity:cur.relative_humidity_2m, apparent:cur.apparent_temperature, desc:wDesc};
+    if(routine && S.aiAvailable){
+      const aiEl = document.getElementById('weather-ai-rec');
+      if(aiEl) aiEl.style.display='block';
+      getWeatherAIRec(weatherData, routine);
+    }
+  }catch(e){
+    // Permission denied or error — hide widget
+    const widget = document.getElementById('weather-widget');
+    if(widget) widget.style.display='none';
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
 async function getWeatherAIRec(weather, routine){
   const recEl = document.getElementById('weather-ai-rec');
   if(!recEl) return;
