@@ -41,12 +41,12 @@ h1,h2,h3{font-family:'Bebas Neue',sans-serif;letter-spacing:.05em;}
 .main{margin-left:220px;padding:32px;flex:1;max-width:calc(100vw - 220px);}
 
 /* ── MOBILE HEADER ── */
-.mobile-header{display:none;position:fixed;top:0;left:0;right:0;height:calc(56px + env(safe-area-inset-top));background:var(--bg2);border-bottom:1px solid var(--border);z-index:200;align-items:flex-end;padding:0 16px env(safe-area-inset-bottom,0) 16px;padding-top:env(safe-area-inset-top);gap:12px;padding-bottom:10px;}
+.mobile-header{display:none;position:fixed;top:0;left:0;right:0;background:var(--bg2);border-bottom:1px solid var(--border);z-index:9999;align-items:center;gap:12px;padding:12px 16px;padding-top:max(env(safe-area-inset-top,0px),12px);}
 .mobile-header-title{font-family:'Bebas Neue';font-size:22px;color:var(--neon);flex:1;}
-.mobile-menu-btn{background:none;border:none;color:var(--text);font-size:22px;cursor:pointer;padding:4px 8px;line-height:1;}
+.mobile-menu-btn{background:none;border:none;color:var(--text);font-size:26px;cursor:pointer;padding:12px 14px;line-height:1;margin-left:-14px;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
 
 /* ── BOTTOM NAV — mobile only ── */
-.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:calc(60px + env(safe-area-inset-bottom));background:var(--bg2);border-top:1px solid var(--border);z-index:200;flex-direction:row;align-items:flex-start;padding-bottom:env(safe-area-inset-bottom);}
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);z-index:9999;flex-direction:row;align-items:flex-start;padding-bottom:env(safe-area-inset-bottom);}
 .bottom-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:#555;font-size:9px;font-weight:700;letter-spacing:.05em;transition:color .15s;border:none;background:none;padding:6px 2px;position:relative;}
 .bottom-nav-item.active{color:var(--neon);}
 .bottom-nav-item .bnav-icon{font-size:20px;line-height:1;}
@@ -152,7 +152,7 @@ tr:hover td{background:rgba(255,255,255,.01);}
   .bottom-nav{display:flex;}
 
   /* Main ajustado */
-  .main{margin-left:0;padding:calc(72px + env(safe-area-inset-top)) 16px calc(76px + env(safe-area-inset-bottom));max-width:100vw;}
+  .main{margin-left:0;padding-top:calc(max(env(safe-area-inset-top),12px) + 56px + 12px);padding-bottom:calc(60px + env(safe-area-inset-bottom) + 8px);padding-left:16px;padding-right:16px;max-width:100vw;}
 
   /* Títulos más chicos */
   .page-title{font-size:28px;}
@@ -202,7 +202,7 @@ tr:hover td{background:rgba(255,255,255,.01);}
 
 <!-- MOBILE HEADER -->
 <div class="mobile-header" id="mobile-header">
-  <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" id="hamburger-btn">☰</button>
+  <button class="mobile-menu-btn" id="hamburger-btn" aria-label="Menu">☰</button>
   <span class="mobile-header-title" id="mobile-page-title">COACHAPP</span>
   <div id="mobile-header-user" style="display:flex;align-items:center;gap:8px;">
     <span id="mobile-role-badge" style="font-size:10px;color:var(--muted);letter-spacing:.08em;"></span>
@@ -857,7 +857,7 @@ tr:hover td{background:rgba(255,255,255,.01);}
   <div class="modal" style="max-width:680px;background:#111;">
     <div class="modal-header">
       <h3 class="modal-title">FICHA DE RUTINA</h3>
-      <div style="display:flex;gap:8px;"><button class="btn btn-primary btn-sm" onclick="printPDF()">🖨 Imprimir</button><button class="modal-close" onclick="closeModal('modal-pdf')">✕</button></div>
+      <div style="display:flex;gap:8px;"><button class="btn btn-primary btn-sm" onclick="saveAsImage()">📥 Guardar imagen</button><button class="btn btn-outline btn-sm" onclick="printPDF()">🖨 Imprimir</button><button class="modal-close" onclick="closeModal('modal-pdf')">✕</button></div>
     </div>
     <div class="modal-body" id="pdf-content"></div>
   </div>
@@ -1324,6 +1324,18 @@ function initExerciseModal(){
 // Apply theme on load
 document.addEventListener('DOMContentLoaded',function(){
   initTheme();
+  // Wire hamburger via addEventListener — avoids Cloudflare/PWA inline handler issues
+  var hbtn = document.getElementById('hamburger-btn');
+  if(hbtn){
+    hbtn.addEventListener('touchstart', function(e){
+      e.preventDefault();
+      toggleMobileSidebar();
+    }, {passive:false});
+    hbtn.addEventListener('click', function(e){
+      e.preventDefault();
+      toggleMobileSidebar();
+    });
+  }
   // Register service worker for PWA
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('/sw.js')
@@ -2344,6 +2356,37 @@ function printPDF(){
   win.document.close();setTimeout(()=>win.print(),800);
 }
 
+async function saveAsImage(){
+  const el = document.getElementById('pdf-content');
+  if(!el) return;
+  // Load html2canvas dynamically
+  if(!window.html2canvas){
+    await new Promise((res,rej)=>{
+      const s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+      s.onload=res; s.onerror=rej;
+      document.head.appendChild(s);
+    });
+  }
+  toast('Generando imagen...');
+  try{
+    const canvas = await html2canvas(el, {
+      backgroundColor:'#111111',
+      scale: 2,
+      useCORS: true,
+      logging: false
+    });
+    const link = document.createElement('a');
+    link.download = 'rutina-coachapp.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    toast('Imagen guardada ✓');
+  }catch(e){
+    toast('Error al generar imagen','error');
+    console.error(e);
+  }
+}
+
 // ══════════════════════════════════════════════
 // ASSIGN
 // ══════════════════════════════════════════════
@@ -2493,14 +2536,10 @@ async function confirmAssign(){
   const weeks=parseInt(document.getElementById('assign-weeks')?.value||4);
   const dates=buildAssignDates(weeks);
   if(S.assignAthlete._isSelf){
-    // Coach assigns to themselves — store in localStorage as personal schedule
-    const selfSchedules=JSON.parse(localStorage.getItem('coach_self_schedules')||'[]');
-    dates.forEach(date=>{
-      selfSchedules.push({id:'sch-self-'+Date.now()+'-'+Math.random(),
-        athlete_id:'self-'+coachId(),routine_id:S.assignRoutine.id,
-        coach_id:coachId(),date,completed:false,seen:true});
+    // Coach assigns to themselves — save to server
+    await POST('/coach/self-schedule',{
+      coach_id:coachId(), routine_id:S.assignRoutine.id, dates
     });
-    localStorage.setItem('coach_self_schedules',JSON.stringify(selfSchedules));
     toast(`${S.assignRoutine.name} guardada en tu agenda ✓`);
     clearAssign();loadAssign();return;
   }
@@ -3062,9 +3101,7 @@ function confirmExitWorkout(){if(confirm('¿Salir del entrenamiento?')){clearInt
 async function onFinishWorkout(){soundDone();clearInterval(S.workoutTimer);window._circuitPaused=false;closeModal('modal-workout');
   if(S._currentScheduleId){try{await PUT('/schedules/'+S._currentScheduleId+'/complete',{});}catch(e){}S._currentScheduleId=null;}
   if(S._coachSelfSchedId){
-    const ss=JSON.parse(localStorage.getItem('coach_self_schedules')||'[]');
-    const idx=ss.findIndex(s=>s.id===S._coachSelfSchedId);
-    if(idx>=0){ss[idx].completed=true;localStorage.setItem('coach_self_schedules',JSON.stringify(ss));}
+    try{ await PUT('/coach/self-schedule/'+S._coachSelfSchedId+'/complete',{}); }catch(e){}
     S._coachSelfSchedId=null;
   }
   S.feedbackRating=3;setRating(3);document.getElementById('feedback-comment').value='';openModal('modal-feedback');}
@@ -3470,43 +3507,46 @@ async function loadCoachWorkout(){
   if(!S.routines.length) S.routines = await GET('/routines?coach_id='+cid);
   if(!S.exercises.length) S.exercises = await GET('/exercises');
 
-  const selfSchedules = JSON.parse(localStorage.getItem('coach_self_schedules')||'[]')
-    .filter(function(s){ return s.athlete_id === 'self-'+cid; });
+  // Load from server (works across all devices)
+  let schedules = [];
+  try { schedules = await GET('/coach/self-schedule?coach_id='+cid); } catch(e){}
+
   const today = new Date().toISOString().slice(0,10);
-  const todayPending = selfSchedules.filter(function(s){ return s.date===today && !s.completed; });
-  const upcoming = selfSchedules.filter(function(s){ return s.date>=today && !s.completed; })
-    .sort(function(a,b){ return a.date>b.date?1:-1; }).slice(0,8);
+  const todayPending = schedules.filter(s => s.date===today && !s.completed);
+  const upcoming = schedules.filter(s => s.date>=today && !s.completed)
+    .sort((a,b) => a.date>b.date?1:-1).slice(0,8);
 
   let todayRoutine = null, todaySchedId = null;
   if(todayPending.length){
-    todayRoutine = S.routines.find(function(r){ return r.id===todayPending[0].routine_id; });
-    todaySchedId = todayPending[0].id;
+    const sch = todayPending[0];
+    todayRoutine = sch.routine || S.routines.find(r => r.id===sch.routine_id);
+    todaySchedId = sch.id;
   }
 
   const typeLabel = {classic:'📋 CLÁSICO',circuit:'⏱ CIRCUITO','1rm':'💪 1RM',hybrid_padel:'🎾 HÍBRIDO'};
 
   function buildUpcomingItem(s){
-    const r = S.routines.find(function(r){ return r.id===s.routine_id; });
+    const r = s.routine || S.routines.find(r => r.id===s.routine_id);
     const d = new Date(s.date+'T12:00:00').toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short'});
     const isT = s.date===today;
-    const bg = isT ? 'rgba(188,255,45,.08)' : 'var(--bg3)';
-    const border = isT ? 'rgba(188,255,45,.2)' : 'var(--border)';
-    const nameColor = isT ? 'var(--neon)' : 'var(--muted)';
-    const typeStr = r ? ((typeLabel[r.type]||r.type)+' · '+r.difficulty) : '';
-    const actionHtml = isT
-      ? '<button class="btn btn-sm btn-primary" onclick="startCoachWorkout(this)">▶ Hoy</button>'
-      : '<span class="badge badge-muted">Pendiente</span>';
-
     const div = document.createElement('div');
-    div.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;background:'+bg+';border:1px solid '+border+';margin-bottom:8px;';
-    div.innerHTML = '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:14px;color:'+nameColor+';min-width:64px;">'+d.toUpperCase()+'</div>'
+    div.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;margin-bottom:8px;'
+      + 'background:'+(isT?'rgba(188,255,45,.08)':'var(--bg3)')+';'
+      + 'border:1px solid '+(isT?'rgba(188,255,45,.2)':'var(--border)')+';';
+    div.innerHTML = '<div style="font-size:13px;color:'+(isT?'var(--neon)':'var(--muted)')+';min-width:68px;font-weight:700;">'+d.toUpperCase()+'</div>'
       + '<div style="flex:1;"><div style="font-weight:700;font-size:14px;">'+(r?r.name:'Rutina')+'</div>'
-      + '<div style="font-size:12px;color:var(--muted);">'+typeStr+'</div></div>'
-      + actionHtml;
+      + '<div style="font-size:12px;color:var(--muted);">'+(r?(typeLabel[r.type]||r.type)+' · '+r.difficulty:'')+'</div></div>';
     if(isT){
-      const btn = div.querySelector('button');
-      if(btn){ btn.dataset.rid = s.routine_id; btn.dataset.sid = s.id;
-        btn.onclick = function(){ startCoachWorkout(s.routine_id, s.id); }; }
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-sm btn-primary';
+      btn.textContent = '▶ Hoy';
+      btn.onclick = () => startCoachWorkout(s.routine_id, s.id);
+      div.appendChild(btn);
+    } else {
+      const badge = document.createElement('span');
+      badge.className = 'badge badge-muted';
+      badge.textContent = 'Pendiente';
+      div.appendChild(badge);
     }
     return div;
   }
@@ -3514,16 +3554,15 @@ async function loadCoachWorkout(){
   const el = document.getElementById('coach-workout-content');
   if(!el) return;
 
-  // Build header
   let html = '<div class="page-header"><h2 class="page-title">MI <span>ENTRENAMIENTO</span></h2>'
     + '<p class="page-sub">Tus rutinas como atleta</p></div>';
 
   if(todayRoutine){
-    html += '<div class="card glow" style="padding:28px;margin-bottom:20px;">'
-      + '<div style="display:flex;gap:8px;margin-bottom:12px;">'
+    html += '<div class="card glow" style="padding:24px;margin-bottom:20px;">'
+      + '<div style="display:flex;gap:8px;margin-bottom:10px;">'
       + '<span class="badge badge-neon">🔥 HOY</span>'
       + '<span class="badge badge-muted">'+(typeLabel[todayRoutine.type]||todayRoutine.type)+'</span></div>'
-      + '<h2 style="font-family:\'Bebas Neue\',sans-serif;font-size:42px;line-height:1;margin-bottom:8px;">'+todayRoutine.name+'</h2>'
+      + '<h2 style="font-size:36px;font-family:\'Bebas Neue\',sans-serif;line-height:1;margin-bottom:6px;">'+todayRoutine.name+'</h2>'
       + '<div style="color:var(--muted);font-size:14px;margin-bottom:20px;">🏋️ '+(todayRoutine.exercises?.length||0)+' ejercicios</div>'
       + '<button class="btn btn-primary btn-lg" style="width:100%;font-size:18px;" id="coach-start-btn">▶ INICIAR ENTRENAMIENTO</button>'
       + '</div>';
@@ -3542,19 +3581,17 @@ async function loadCoachWorkout(){
 
   el.innerHTML = html;
 
-  // Wire today start button
   if(todayRoutine && todaySchedId){
     const btn = document.getElementById('coach-start-btn');
-    if(btn) btn.onclick = function(){ startCoachWorkout(todayRoutine.id, todaySchedId); };
+    if(btn) btn.onclick = () => startCoachWorkout(todayRoutine.id, todaySchedId);
   }
 
-  // Build upcoming list with DOM (avoids string escaping issues)
-  const upcomingEl = document.getElementById('coach-upcoming-list');
-  if(upcomingEl){
+  const upEl = document.getElementById('coach-upcoming-list');
+  if(upEl){
     if(upcoming.length){
-      upcoming.forEach(function(s){ upcomingEl.appendChild(buildUpcomingItem(s)); });
+      upcoming.forEach(s => upEl.appendChild(buildUpcomingItem(s)));
     } else {
-      upcomingEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0;">Sin entrenamientos programados. Asignate rutinas desde Mis Rutinas.</div>';
+      upEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0;">Sin entrenamientos programados. Asignate rutinas desde Mis Rutinas.</div>';
     }
   }
 }
@@ -3646,9 +3683,7 @@ async function confirmQuickAssign(){
   let total=0;
   for(const aid of _qaSelectedAthletes){
     if(aid.startsWith('self-')){
-      const selfSchedules=JSON.parse(localStorage.getItem('coach_self_schedules')||'[]');
-      uniqueDates.forEach(date=>selfSchedules.push({id:'sch-self-'+Date.now()+Math.random(),athlete_id:aid,routine_id:_qaRoutine.id,coach_id:coachId(),date,completed:false,seen:true}));
-      localStorage.setItem('coach_self_schedules',JSON.stringify(selfSchedules));
+      await POST('/coach/self-schedule',{coach_id:coachId(),routine_id:_qaRoutine.id,dates:uniqueDates});
     }else{
       for(const date of uniqueDates){
         await POST('/schedules',{athlete_id:aid,routine_id:_qaRoutine.id,coach_id:coachId(),date});

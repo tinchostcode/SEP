@@ -738,15 +738,17 @@ def get_schedules():
 @app.route("/api/schedules", methods=["POST"])
 def create_schedule():
     d=request.json
-    # evitar duplicado misma fecha+atleta+rutina
-    # Check duplicate: same athlete + date + routine
+    athlete_id = d.get("athlete_id","")
+    # Normalize coach self-assign: "self-{id}" → "coach-self-{id}"
+    if athlete_id.startswith("self-") and not athlete_id.startswith("coach-self-"):
+        athlete_id = "coach-self-" + athlete_id[5:]
     all_scheds = load("schedules")
     dup = next((s for s in all_scheds
-                if s.get("athlete_id")==d.get("athlete_id")
+                if s.get("athlete_id")==athlete_id
                 and s.get("date")==d.get("date")
                 and s.get("routine_id")==d.get("routine_id")), None)
     if dup: return jsonify(dup),200
-    new={"id":uid("sch"),"athlete_id":d.get("athlete_id",""),
+    new={"id":uid("sch"),"athlete_id":athlete_id,
          "routine_id":d.get("routine_id",""),"coach_id":d.get("coach_id",""),
          "date":d.get("date",""),"completed":False,"seen":False,
          "created_at":datetime.now().isoformat()}
@@ -1166,8 +1168,14 @@ def ai_athlete():
     return jsonify({"analysis":intro,"tips":bullets or tips_fb,"bmi":bmi,"ai":True})
 
 # ═══════════════════════════════════════════════════════════════════════════════
-if __name__ == "__main__":
+# Run init_data at module load — works with both gunicorn (Railway) and direct run
+try:
     init_data()
+except Exception as _e:
+    print(f"  ⚠ init_data error: {_e}")
+
+if __name__ == "__main__":
+    pass  # init_data already ran above
     print("\n" + "="*58)
     print("  🏋️  CoachApp v4")
     print("  ➜   http://localhost:5000")
