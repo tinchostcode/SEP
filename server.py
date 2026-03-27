@@ -228,6 +228,47 @@ def cors(r):
 @app.route("/<path:p>", methods=["OPTIONS"])
 def opts(p): return jsonify({}), 200
 
+@app.route("/api/coach/self-schedule", methods=["GET"])
+def get_coach_self_schedule():
+    coach_id = request.args.get("coach_id","")
+    if not coach_id: return jsonify([])
+    athlete_id = "coach-self-"+coach_id
+    all_s = load("schedules")
+    items = [s for s in all_s if s.get("athlete_id")==athlete_id]
+    routines_map = {r["id"]:r for r in load("routines")}
+    for s in items: s["routine"] = routines_map.get(s.get("routine_id",""))
+    return jsonify(items)
+
+@app.route("/api/coach/self-schedule", methods=["POST"])
+def create_coach_self_schedule():
+    d = request.json or {}
+    coach_id = d.get("coach_id","")
+    athlete_id = "coach-self-"+coach_id
+    dates = d.get("dates",[])
+    routine_id = d.get("routine_id","")
+    created = []
+    for date in dates:
+        all_s = load("schedules")
+        dup = next((s for s in all_s if s.get("athlete_id")==athlete_id
+                    and s.get("date")==date and s.get("routine_id")==routine_id), None)
+        if not dup:
+            new_s = {"id":uid("sch"),"athlete_id":athlete_id,"routine_id":routine_id,
+                     "coach_id":coach_id,"date":date,"completed":False,"seen":True,
+                     "created_at":datetime.now().isoformat()}
+            db_upsert("schedules", new_s["id"], new_s,
+                      {"athlete_id":athlete_id,"coach_id":coach_id,"date_col":date})
+            created.append(new_s)
+    return jsonify({"ok":True,"created":len(created)})
+
+@app.route("/api/coach/self-schedule/<sid>/complete", methods=["PUT"])
+def complete_coach_self_schedule(sid):
+    s = db_get_one("schedules", sid)
+    if not s: return jsonify({"error":"not found"}),404
+    s["completed"] = True
+    db_upsert("schedules", sid, s,
+              {"athlete_id":s["athlete_id"],"coach_id":s.get("coach_id",""),"date_col":s["date"]})
+    return jsonify({"ok":True})
+
 @app.route("/api/admin/reseed", methods=["POST"])
 def reseed():
     """Fuerza recarga del seed. Solo usar desde Railway para inicializar datos."""
@@ -496,19 +537,31 @@ ROUTINES_SEED = [
   {"id": "rut-023", "name": "Principiante — Primera Semana", "description": "Rutina para personas que empiezan a entrenar. Movimientos básicos con peso corporal y carga leve.", "type": "classic", "difficulty": "beginner", "tags": ["Principiante", "Full Body", "Peso Corporal"], "circuit": None, "coach_id": "system", "exercises": [{"exerciseId": "ex-065", "sets": 3, "reps": "10", "weight": "12", "restBetweenSets": 90, "setDetails": []}, {"exerciseId": "ex-008", "sets": 3, "reps": "8", "weight": "BW", "restBetweenSets": 90, "setDetails": []}, {"exerciseId": "ex-059", "sets": 2, "reps": "10c/lado", "weight": "", "restBetweenSets": 60, "setDetails": []}, {"exerciseId": "ex-017", "sets": 3, "reps": "20s", "weight": "", "restBetweenSets": 60, "setDetails": []}, {"exerciseId": "ex-094", "sets": 2, "reps": "30", "weight": "", "restBetweenSets": 60, "setDetails": []}, {"exerciseId": "ex-090", "sets": 1, "reps": "5", "weight": "", "restBetweenSets": 30, "setDetails": []}], "created_at": "2026-02-08T10:00:00"},
 ]
 
+def upsert_seed_item(table, item):
+    """Insert seed item only if id does not exist yet."""
+    existing = db_get_one(table, item["id"])
+    if not existing:
+        extra = {}
+        if "coach_id" in item: extra["coach_id"] = item["coach_id"]
+        db_upsert(table, item["id"], item, extra or None)
+        return True
+    return False
+
 def init_data():
     init_db()
     created = []
-    # Only seed if tables are empty
+    # Coaches and athletes: only if empty
     if not load("coaches"):
-        save("coaches", COACHES_SEED);    created.append(f"{len(COACHES_SEED)} coaches")
+        save("coaches", COACHES_SEED); created.append(f"{len(COACHES_SEED)} coaches")
     if not load("athletes"):
         save("athletes", ATHLETES_SEED); created.append(f"{len(ATHLETES_SEED)} atletas")
-    if not load("exercises"):
-        save("exercises", EXERCISES_SEED); created.append(f"{len(EXERCISES_SEED)} ejercicios")
-    if not load("routines"):
-        save("routines", ROUTINES_SEED); created.append(f"{len(ROUTINES_SEED)} rutinas")
+    # Exercises and routines: always upsert seed items (safe — only adds missing ones)
+    ex_added = sum(1 for e in EXERCISES_SEED if upsert_seed_item("exercises", e))
+    rut_added = sum(1 for r in ROUTINES_SEED if upsert_seed_item("routines", r))
+    if ex_added:  created.append(f"{ex_added} ejercicios nuevos")
+    if rut_added: created.append(f"{rut_added} rutinas nuevas")
     if created: print("  ✓ Datos iniciales: " + ", ".join(created))
+    else: print(f"  ✓ Seed OK ({len(EXERCISES_SEED)} ejercicios, {len(ROUTINES_SEED)} rutinas)")
 
 # ── BMI ───────────────────────────────────────────────────────────────────────
 def calc_bmi(w, h):
